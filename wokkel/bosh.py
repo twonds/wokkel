@@ -22,8 +22,14 @@ from wokkel.generic import parseXml
 
 
 BIND_XMLNS = 'urn:ietf:params:xml:ns:xmpp-bind'
-
 NS_HTTP_BIND = "http://jabber.org/protocol/httpbind"
+
+def clientCreator(url, factory):
+    proxy = Proxy(url)
+    xs = factory.buildProtocol(proxy.host)
+    xs.proxy = proxy
+    xs.connectionMade()
+    return factory.deferred
 
 
 class QueryProtocol(http.HTTPClient):
@@ -212,8 +218,7 @@ class Proxy:
     """
     cookie = None
     def __init__(self, url):
-        """
-        Parse the given url and find the host and port to connect to.
+        """Parse the given url and find the host and port to connect to.
         """
         parts = urlparse.urlparse(url)
         self.url = urlparse.urlunparse(('', '')+parts[2:])
@@ -228,8 +233,7 @@ class Proxy:
         
 
     def connect(self, b):        
-        """
-        Make a connection to the web server and send along the data.
+        """Make a connection to the web server and send along the data.
         """
 
         self.factory = QueryFactory(self.url, self.host, b)
@@ -279,19 +283,19 @@ class HTTPBClientConnector:
 
         
 class HTTPBindingStream(xmlstream.XmlStream):
-    """
-    BOSH wrapper that acts like L{xmlstream.XmlStream}
-
+    """BOSH wrapper that acts like L{xmlstream.XmlStream}
     """
 
     window = 5
     hold   = 1
 
+    base_url = '/xmpp-httpbind/'
+    host = 'stanziq.com'
+    mechanism = 'ANONYMOUS'
+
     def __init__(self, authenticator):
         xmlstream.XmlStream.__init__(self, authenticator)
-        self.base_url = '/xmpp-httpbind/'
-        self.host = 'stanziq.com'
-        self.mechanism = 'ANONYMOUS'
+        
         # request id
         self.rid = random.randint(0, 10000000)
         # session id
@@ -502,3 +506,8 @@ class HTTPBindingStreamFactory(xmlstream.XmlStreamFactory):
         for event, fn in self.bootstraps: xs.addObserver(event, fn)
         return xs
         
+
+class BOSHClientFactory(ClientFactory):
+    protocol = HTTPBindingStream
+
+
