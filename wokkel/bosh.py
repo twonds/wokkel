@@ -19,7 +19,7 @@ import urlparse
 import sha, random
 
 from wokkel.generic import parseXml
-
+from wokkel import client
 
 BIND_XMLNS = 'urn:ietf:params:xml:ns:xmpp-bind'
 NS_HTTP_BIND = "http://jabber.org/protocol/httpbind"
@@ -507,7 +507,7 @@ class HTTPBindingStreamFactory(xmlstream.XmlStreamFactory):
         return xs
         
 
-class BOSHClientFactory(ClientFactory):
+class BOSHClientFactory(client.DeferredClientFactory):
     protocol = HTTPBindingStream
 
 
