@@ -658,7 +658,7 @@ class PubSubClient(XMPPHandler):
     implements(IPubSubClient)
 
     def connectionInitialized(self):
-        self.xmlstream.addObserver('/message/event[@xmlns="%s"]' %
+        self.xmlstream.addObserver('/message[@type!="error"]/event[@xmlns="%s"]' %
                                    NS_PUBSUB_EVENT, self._onEvent)
 
 
