@@ -63,6 +63,10 @@ class BOSHClient(unittest.TestCase):
     
         
     def testClientCreator(self):
+        """
+        """
+        factory = bosh.BOSHClientFactory()
+        d = bosh.clientCreator(self.getURL(), factory)
 
         return True
     
