@@ -351,7 +351,6 @@ class HTTPBindingStream(xmlstream.XmlStream):
             stream_started = False
             raise ex
         if stream_started:
-            log.msg("Stream started")
             r['version'] = r['ver']
             self.authenticator.streamStarted(r)
             self.send()
@@ -517,3 +516,22 @@ class BOSHClientFactory(client.DeferredClientFactory):
     protocol = HTTPBindingStream
 
 
+    def stopTrying(self):
+        pass
+
+class XMPPClient(client.XMPPClient):
+    """
+    Service that initiates an XMPP client connection.
+    """
+
+    def __init__(self, jid, password, host=None, port=5222, url="http://localhost:5280/bosh"):
+        proxy = Proxy(url)
+        self.jid = jid
+        self.domain = jid.host
+        self.host = host
+        self.port = port
+
+        factory = BOSHClientFactory(jid, password)
+        factory.proxy = proxy
+        factory.protocol.proxy = proxy
+        client.StreamManager.__init__(self, factory)
