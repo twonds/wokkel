@@ -9,7 +9,7 @@ BOSH Client support.
 This module includes client support for BOSH connections in twisted/wokkel.
 """
 
-from twisted.internet import defer, protocol, reactor
+from twisted.internet import defer, protocol, reactor, error
 from twisted.python import log
 from twisted.words.xish import domish
 from twisted.web import http
@@ -36,6 +36,8 @@ class QueryProtocol(http.HTTPClient):
     """ HTTP protocol class for making BOSH POST requests.
     """
     noisy = False
+    #quietLoss = True
+
     def connectionMade(self):
         self.factory.sendConnected(self)
         self.sendBody(self.factory.cb, cookie=self.factory.cookie)
@@ -105,10 +107,12 @@ class QueryProtocol(http.HTTPClient):
 
     def handleResponsePart(self, data):
         self.__buffer.append(data)
+                
 
     def connectionLost(self, reason):
-        pass
-
+        reason.trap(error.ConnectionDone)
+        if str(reason.type) == "<class 'twisted.internet.error.ConnectionDone'>":
+            self.handleResponseEnd()
 
 class QueryFactory(protocol.ClientFactory):
     """ a factory to create http client connections.
@@ -159,9 +163,12 @@ class QueryFactory(protocol.ClientFactory):
         
     
     def clientConnectionLost(self, _, reason):
+        reason.trap(error.ConnectionDone)        
         try:
             self.client = None
             if not self.deferred.called:
+                log.msg(reason)
+                log.msg("==== error ======")
                 self.deferred.errback(reason)
                 
         except:
@@ -173,7 +180,7 @@ class QueryFactory(protocol.ClientFactory):
         if not self.deferred.called:
             self.deferred.errback(ValueError(status, message))
             
-
+            
 
 
 class Keys:
@@ -314,8 +321,8 @@ class HTTPBindingStream(xmlstream.XmlStream):
         ms = ''
         self.cookie = self.proxy.factory.cookie
         self.stream_reset = False
-        self.session_id = r['sid']
-        self.authid = r['authid']
+        self.session_id = r.getAttribute('sid', 0)
+        self.authid = r.getAttribute('authid', 0)
         self.namespace = self.authenticator.namespace
         self.otherHost = self.authenticator.otherHost
         self.dispatch(self, xmlstream.STREAM_START_EVENT)
@@ -343,9 +350,8 @@ class HTTPBindingStream(xmlstream.XmlStream):
         except Exception, ex:
             stream_started = False
             raise ex
-        
         if stream_started:
-        
+            log.msg("Stream started")
             r['version'] = r['ver']
             self.authenticator.streamStarted(r)
             self.send()
